@@ -176,6 +176,8 @@ class Remote(object):
 
 
 class Geonotebook(object):
+    """Geonotebook object"""
+
     msg_types = ['get_protocol', 'set_center', 'add_annotation',
                  'get_map_state']
 
@@ -432,6 +434,8 @@ class Geonotebook(object):
 
 
 class GeonotebookKernel(IPythonKernel):
+    """GeonotebookKernel docblock"""
+
     def _unwrap(self, msg):
         """Unwrap a Comm message.
 
