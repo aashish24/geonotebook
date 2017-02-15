@@ -9,6 +9,13 @@ module.exports = [
       plugins: ['transform-es2015-modules-commonjs']
     }
   }, {
+    test: /ol\/.*\.js$/,
+    loader: 'babel-loader',
+    query: {
+      presets: [],
+      plugins: ['transform-es2015-modules-commonjs']
+    }
+  }, {
     test: /\.css$/,
     exclude: /node_modules/,
     loaders: [
