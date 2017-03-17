@@ -2,6 +2,7 @@ import _ from 'underscore';
 import 'geojs';
 
 import GeoMap from 'geojs/map';
+import geo from 'geojs/index';
 import JsonReader from 'geojs/jsonReader';
 import event from 'geojs/event';
 import { pointAnnotation, rectangleAnnotation, polygonAnnotation } from 'geojs/annotation';
@@ -286,13 +287,29 @@ MapObject.prototype._set_layer_zindex = function (layer, index) {
   }
 };
 
+var DeepZoom = function (arg) {
+  if (!(this instanceof DeepZoom)) {
+    return new DeepZoom(arg);
+  }
+  geo.tileLayer.call(this, arg);
+
+  this._getTile = function (index, source) {
+    return geo.imageTile({
+      index: index,
+      size: {x: this._options.tileWidth, y: this._options.tileHeight},
+      queue: this._queue,
+      url: this._options.url(source || index)
+    });
+  };
+};
+
 MapObject.prototype.add_layer = function (layer_name, vis_url, vis_params, query_params) {
   var layer_type = vis_params['layer_type'];
 
   if (layer_type === 'annotation') {
     return this.add_annotation_layer(layer_name);
   } else if (layer_type === 'osm') {
-    return this.add_osm_layer(layer_name, vis_url, vis_params, query_params);
+    return this.add_osm_layer(DeepZoom, vis_params);
   } else if (layer_type === 'wms') {
     return this.add_wms_layer(layer_name, vis_url, vis_params, query_params);
   } else if (layer_type === 'vector') {
@@ -318,15 +335,40 @@ MapObject.prototype.replace_layer = function (prev_layer, layer_name, vis_url, v
   }
 };
 
-MapObject.prototype.add_osm_layer = function (layer_name, url, vis_params, query_params) {
-  var opts = {};
-  if (vis_params.attribution) {
-    opts.attribution = vis_params.attribution;
-  }
-  var osm = this.geojsmap.createLayer('osm', opts);
+MapObject.prototype.add_osm_layer = function (DeepZoom, vis_params) {
+  // var opts = {};
+  // if (vis_params.attribution) {
+  //   opts.attribution = vis_params.attribution;
+  // }
+  // var osm = this.geojsmap.createLayer('osm', opts);
 
-  osm.name(layer_name);
-  osm.url(url);
+  // osm.name(layer_name);
+  // osm.url(url);
+
+  var layer_name = 'tiledFish';
+  var sizeX = 103583, sizeY = 70014, tileSize = 256;
+  var defaultParams = geo.util.pixelCoordinateParams(
+        '#geonotebook-map', sizeX, sizeY, tileSize, tileSize);
+
+  DeepZoom.defaults = $.extend({}, geo.tileLayer.defaults, defaultParams.layer, {
+    levelOffset: 8,
+    url: function (index) {
+      return 'http://node15.cci.emory.edu/cgi-bin/iipsrv.fcgi?DeepZoom=/bigdata2/' +
+      'PYRAMIDS/CDSA/ACC_Diagnostic/nationwidechildrens.org_ACC.diagnostic_images.' +
+      'Level_1.304.4.0/TCGA-OR-A5J1-01Z-00-DX1.600C7D8C-F04C-4125-AF14-B1E76DC01A1E.' +
+      'svs.dzi.tif_files/' + (index.level + 8) + '/' + index.x + '_' + index.y + '.jpg';
+    }
+  });
+  geo.inherit(DeepZoom, geo.tileLayer);
+  geo.registerLayer('tiledFish', DeepZoom);
+
+
+  var osm = this.geojsmap.createLayer(
+    'tiledFish', {
+      renderer: 'vgl',
+      features: ['quad.imageFixedScale']
+    }
+  );
 
     // make sure zindex is explicitly set
   this._set_layer_zindex(osm, vis_params['zIndex']);
